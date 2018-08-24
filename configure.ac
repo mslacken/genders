@@ -86,6 +86,7 @@ AC_PATH_PROG([JAVAH], [javah])
 AC_PATH_PROG([JAVA], [java])
 AC_PATH_PROG([JAR], [jar])
 AC_PATH_PROG([JAVADOC], [javadoc])
+AC_PATH_PROG([JAVADOC], [lua])
 AC_DEBUG
 
 ##
@@ -207,6 +208,13 @@ AM_CONDITIONAL(WITH_CPLUSPLUS_EXTENSIONS, [test "$ac_with_cplusplus_extensions" 
 #
 AC_JAVA_EXTENSIONS
 AM_CONDITIONAL(WITH_JAVA_EXTENSIONS, [test "$ac_with_java_extensions" = "yes"])
+
+
+#
+# Check for lua
+#
+X_AC_LUA
+
 
 ##
 # Checks for typedefs, structures, and compiler characteristics.
