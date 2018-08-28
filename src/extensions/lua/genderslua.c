@@ -28,63 +28,94 @@
 #include <genders.h>
 
 typedef struct {
-    genders_t * handle;
-    char      *name;
-    char      *db_name;
+	/* genders_t itself is a pointer */
+	genders_t handle;
+	char      *db_name;
  } lgenders_userdata_t;
 
 static int lgenders_new(lua_State *L) {
 	lgenders_userdata_t *dbh;
-	const char *name, *db_name;
+	const char *name, *db_name, *g_error;
+	int g_errcode = 0;
 	/* check for argument vailidy */
-	name = luaL_checkstring(L,1);
-	db_name =luaL_checkstring(L,2); 
-	if (name = NULL)
-		luaL_error(L,"name cannot be empty");
-	if (db_name)
+	db_name = luaL_checkstring(L,1); 
+	if (db_name == NULL)
 		luaL_error(L,"database name could not be empty");
 	/* Create the user data pushing it onto the stack. We also pre-initialize
 	 * the member of the userdata in case initialization fails in some way. If
 	 * that happens we want the userdata to be in a consistent state for __gc. 
 	 */
 	dbh = (lgenders_userdata_t *)lua_newuserdata(L, sizeof(*dbh));
-	dbh->handle = NULL;
-	dbh->name = NULL;
-	dbh->db_name = NULL;
+	dbh->handle,dbh->db_name = NULL; 
 	/* Add the metatable to the stack. */
 	luaL_getmetatable(L, "LGenders");
 	/* Set the metatable on the userdata. */
 	lua_setmetatable(L, -2);
-	 /* Create the handle */
-	dbh->name = strdup(name);
+	/* Create the handle */
+	dbh->handle =  genders_handle_create(); 
 	dbh->db_name = strdup(db_name);
-
+	if(genders_load_data(dbh->handle,dbh->db_name) != 0) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
 	return 1;
 }
 static int lgenders_destroy(lua_State *L) {
 	lgenders_userdata_t *dbh;
 	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
-
-	if (dbh->name != NULL)
-		free(dbh->name);
-	dbh->name = NULL;
+	/* pass return value to lus */
+	if (dbh->handle != NULL)
+		genders_handle_destroy(dbh->handle);
 
 	if (dbh->db_name != NULL)
 		free(dbh->db_name);
 	dbh->db_name = NULL;
-
+	printf("genders handle destroyed\n");
 	return 0;
 }
 
+static int lgenders_getnumnodes(lua_State *L) {
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	lua_pushinteger(L,genders_getnumnodes(dbh->handle));
+	return 1;
+}
 
-static const struct luaL_Reg lgenders_methods[] = {
-	{ "__gc",        lgenders_destroy   },
-	{ NULL,          NULL               },
+static int lgenders_getnumattrs(lua_State *L) {
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	lua_pushinteger(L,genders_getnumattrs(dbh->handle));
+	return 1;
+}
+
+static int lgenders_getnodes(lua_State *L) {
+	char **nodelist;
+	int size,nr_nodes,i = 0;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	/* create space for the genders stuff */
+	genders_nodelist_create(dbh->handle,&nodelist);
+	size = genders_getnumnodes(dbh->handle);
+	nr_nodes = genders_getnodes(dbh->handle,nodelist,size,"","");
+	printf("my number of nodes is %i\n",nr_nodes);
+	for(i = 0; i < nr_nodes; i++) {
+		printf("node[%i]: %s\n",i,nodelist[i]);
+		lua_pushstring(L,nodelist[i]);
+	}
+	return 1;
+}
+
+static const struct luaL_Reg libgenderslua_methods[] = {
+	{"getnumattrs",lgenders_getnumattrs},
+	{"getnumnodes",lgenders_getnumnodes},
+	{"getnodes",lgenders_getnodes},
+	{"__gc",lgenders_destroy},
+	{NULL,NULL},
 };
 
 static const struct luaL_Reg libgenderslua_functions[] = {
 	{ "new", lgenders_new },
-	{ NULL,  NULL         }
+	{ NULL,  NULL}
 };
 
 
@@ -102,7 +133,7 @@ int luaopen_libgenderslua(lua_State *L) {
 	lua_setfield(L, -2, "__index");
 
 	/* Set the methods to the metatable that should be accessed via object:func */
-	luaL_setfuncs(L, lgenders_methods, 0);
+	luaL_setfuncs(L, libgenderslua_methods, 0);
 
 	/* Register the object.func functions into the table that is at the top of the
 	* stack. */
