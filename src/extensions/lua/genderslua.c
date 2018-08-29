@@ -61,6 +61,26 @@ static int lgenders_new(lua_State *L) {
 	}
 	return 1;
 }
+static int lgenders_reload(lua_State *L) {
+	lgenders_userdata_t *dbh;
+	const char *db_name, *g_error;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	/* check for argument vailidy */
+	db_name = luaL_checkstring(L,2); 
+	if (db_name == NULL)
+		db_name = strdup(dbh->db_name);
+	if (dbh->handle != NULL)
+		genders_handle_destroy(dbh->handle);
+	dbh->db_name = NULL; 
+	/* Create the handle */
+	dbh->handle =  genders_handle_create(); 
+	dbh->db_name = strdup(db_name);
+	if(genders_load_data(dbh->handle,dbh->db_name) != 0) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	return 0;
+}
 static int lgenders_destroy(lua_State *L) {
 	lgenders_userdata_t *dbh;
 	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
@@ -207,6 +227,7 @@ static const struct luaL_Reg libgenderslua_methods[] = {
 	{"getnodes",lgenders_getnodes},
 	{"getattr",lgenders_getattr},
 	{"query",lgenders_query},
+	{"reload",lgenders_reload},
 	{"__gc",lgenders_destroy},
 	{NULL,NULL},
 };
