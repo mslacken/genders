@@ -123,10 +123,43 @@ static int lgenders_getnodes(lua_State *L) {
 	return 1;
 }
 
+static int lgenders_query(lua_State *L) {
+	char** nodelist;
+	const char *g_error, *query;
+	int size, nr_nodes, i, nr_args = 0;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	/* create space for the genders stuff */
+	size = genders_nodelist_create(dbh->handle,&nodelist);
+	if(size == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	nr_args = lua_gettop(L);
+	if(nr_args == 2)
+		query = luaL_checkstring(L,2); 
+	else
+		luaL_error(L,"query myst be called with one argument");
+	nr_nodes = genders_query(dbh->handle,nodelist,size,query);
+	lua_newtable(L);
+	for(i = 0; i < nr_nodes; i++) {
+		lua_pushstring(L,nodelist[i]);
+		lua_rawseti(L,-2,i+1);
+	}
+	/* destroy list of nodes */
+	if(genders_vallist_destroy(dbh->handle,nodelist) == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	return 1;
+}
+
+
 static const struct luaL_Reg libgenderslua_methods[] = {
 	{"getnumattrs",lgenders_getnumattrs},
 	{"getnumnodes",lgenders_getnumnodes},
 	{"getnodes",lgenders_getnodes},
+	{"query",lgenders_query},
 	{"__gc",lgenders_destroy},
 	{NULL,NULL},
 };
