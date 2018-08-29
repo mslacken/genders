@@ -25,6 +25,7 @@
 #include <string.h>
 #include <lua.h>
 #include <lauxlib.h>
+#include <lualib.h>
 #include <genders.h>
 
 typedef struct {
@@ -35,8 +36,7 @@ typedef struct {
 
 static int lgenders_new(lua_State *L) {
 	lgenders_userdata_t *dbh;
-	const char *name, *db_name, *g_error;
-	int g_errcode = 0;
+	const char *db_name, *g_error;
 	/* check for argument vailidy */
 	db_name = luaL_checkstring(L,1); 
 	if (db_name == NULL)
@@ -46,7 +46,8 @@ static int lgenders_new(lua_State *L) {
 	 * that happens we want the userdata to be in a consistent state for __gc. 
 	 */
 	dbh = (lgenders_userdata_t *)lua_newuserdata(L, sizeof(*dbh));
-	dbh->handle,dbh->db_name = NULL; 
+	dbh->handle = NULL;
+	dbh->db_name = NULL; 
 	/* Add the metatable to the stack. */
 	luaL_getmetatable(L, "LGenders");
 	/* Set the metatable on the userdata. */
@@ -70,7 +71,6 @@ static int lgenders_destroy(lua_State *L) {
 	if (dbh->db_name != NULL)
 		free(dbh->db_name);
 	dbh->db_name = NULL;
-	printf("genders handle destroyed\n");
 	return 0;
 }
 
@@ -89,18 +89,36 @@ static int lgenders_getnumattrs(lua_State *L) {
 }
 
 static int lgenders_getnodes(lua_State *L) {
-	char **nodelist;
-	int size,nr_nodes,i = 0;
+	char** nodelist;
+	const char *g_error, *attr, *val;
+	int size, nr_nodes, i, nr_args = 0;
 	lgenders_userdata_t *dbh;
 	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
 	/* create space for the genders stuff */
-	genders_nodelist_create(dbh->handle,&nodelist);
-	size = genders_getnumnodes(dbh->handle);
-	nr_nodes = genders_getnodes(dbh->handle,nodelist,size,"","");
-	printf("my number of nodes is %i\n",nr_nodes);
+	size = genders_nodelist_create(dbh->handle,&nodelist);
+	if(size == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	attr = NULL; val = NULL;
+	/* check for attr and val */
+	nr_args = lua_gettop(L);
+	if(nr_args > 1)
+		attr = luaL_checkstring(L,2); 
+	if(nr_args > 2)
+		val = luaL_checkstring(L,3); 
+	if(nr_args > 3)
+		luaL_error(L,"getnodes accepts none,one or two arguments");
+	nr_nodes = genders_getnodes(dbh->handle,nodelist,size,attr,val);
+	lua_newtable(L);
 	for(i = 0; i < nr_nodes; i++) {
-		printf("node[%i]: %s\n",i,nodelist[i]);
 		lua_pushstring(L,nodelist[i]);
+		lua_rawseti(L,-2,i+1);
+	}
+	/* destroy list of nodes */
+	if(genders_vallist_destroy(dbh->handle,nodelist) == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
 	}
 	return 1;
 }
