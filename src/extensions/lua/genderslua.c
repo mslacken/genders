@@ -116,7 +116,7 @@ static int lgenders_getnodes(lua_State *L) {
 		lua_rawseti(L,-2,i+1);
 	}
 	/* destroy list of nodes */
-	if(genders_vallist_destroy(dbh->handle,nodelist) == -1) {
+	if(genders_nodelist_destroy(dbh->handle,nodelist) == -1) {
 		g_error = strdup(genders_errormsg(dbh->handle));
 		luaL_error(L,g_error);
 	}
@@ -147,7 +147,53 @@ static int lgenders_query(lua_State *L) {
 		lua_rawseti(L,-2,i+1);
 	}
 	/* destroy list of nodes */
-	if(genders_vallist_destroy(dbh->handle,nodelist) == -1) {
+	if(genders_nodelist_destroy(dbh->handle,nodelist) == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	return 1;
+}
+static int lgenders_getattr(lua_State *L) {
+	char **attr_list, **val_list;
+	const char *node, *g_error;
+	int ret_code, nr_args, size_attr, i = 0;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	nr_args = lua_gettop(L);
+	if(nr_args == 2)
+		node = luaL_checkstring(L,2); 
+	else
+		luaL_error(L,"query myst be called with one argument");
+	/* create space for the lists */
+	ret_code = genders_attrlist_create(dbh->handle,&attr_list);
+	if(ret_code == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	ret_code = genders_vallist_create(dbh->handle,&val_list);
+	if(ret_code == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	/* hopefully size (which is in ret_code) of attr_list and val_list are the same */
+	size_attr = genders_getattr(dbh->handle,attr_list,val_list,ret_code,node);
+	if(size_attr == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	lua_newtable(L);
+	for(i = 0; i < size_attr; i++) {
+		printf("attr: %s <-> val %s\n",attr_list[i],val_list[i]);
+		lua_pushstring(L, attr_list[i]);
+		lua_pushstring(L, val_list[i]);
+		lua_settable(L, -3);
+	}
+	/* destroy list of nodes */
+	if(genders_vallist_destroy(dbh->handle,val_list) == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	if(genders_attrlist_destroy(dbh->handle,attr_list) == -1) {
 		g_error = strdup(genders_errormsg(dbh->handle));
 		luaL_error(L,g_error);
 	}
@@ -159,6 +205,7 @@ static const struct luaL_Reg libgenderslua_methods[] = {
 	{"getnumattrs",lgenders_getnumattrs},
 	{"getnumnodes",lgenders_getnumnodes},
 	{"getnodes",lgenders_getnodes},
+	{"getattr",lgenders_getattr},
 	{"query",lgenders_query},
 	{"__gc",lgenders_destroy},
 	{NULL,NULL},
