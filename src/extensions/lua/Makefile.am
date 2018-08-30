@@ -4,26 +4,22 @@
 
 
 if WITH_LUA_EXTENSIONS
-#luaexec_LTLIBRARIES       = libgenders.la
-#
-#libgenders_la_CFLAGS = @LUA_INCLUDE@
-#
-#libgenders_la_SOURCES = genderslua.c
-#
-#libgenders_la_LIBADD = ../../libgenders/libgenders.la
-#
-#libgenders_la_LDFLAGS =  -version-info  @LIBGENDERSLUA_VERSION_INFO@ $(OTHER_FLAGS)
-#
-#../../libgenders/libgenderslua.la: force-dependency-check
-#	@cd `dirname $@` && make `basename $@`
-#force-dependency-check:
-#
-luaexec_LIBRARIES = libgenderslib.a
 
-libgenderslib_a_SOURCES = genderslua.c
+all: genderslua.c ../../libgenders/libgenders.la
+	$(CC) -shared -o genders.so @LUA_LIB@ @LUA_INCLUDE@ \
+	-L../../libgenders/.libs -lgenders -I../../libgenders \
+	-W -Wall -fPIC genderslua.c 
 
-libgenderslib_a_CFLAGS =  @LUA_INCLUDE@
+install:
+	install -D --target-directory=$(luaexecdir) genders.so 
 
-libgenderslib_a_LIBADD = ../../libgenders/libgenders.la $(OTHER_FLAGS) @LUA_LIB@
+pure_install:
+	install -D --target-directory=$(luaexecdir) genders.so 
 
+pure-install-local:
+	install -D --target-directory=$(luaexecdir) genders.so 
+clean:
+	rm -rf *.so
 endif
+
+EXTRA_DIST = genderslua.c
