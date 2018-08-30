@@ -5,22 +5,17 @@
 
 if WITH_LUA_EXTENSIONS
 
-all: genderslua.c ../../libgenders/libgenders.la
-	$(CC) -shared -o genders.so @LUA_LIB@ @LUA_INCLUDE@ \
-	-L../../libgenders/.libs -lgenders -I../../libgenders \
-	-W -Wall -fPIC genderslua.c  -L/usr/lib64 \
-	-D_FORTIFY_SOURCE=2 -fstack-protector-strong -funwind-tables -fasynchronous-unwind-tables -fstack-clash-protection -fwrapv -O2 
+luaexec_LTLIBRARIES = genders.la
 
-install:
-	install -D --target-directory=$(DESTDIR)$(luaexecdir) genders.so 
+genders_la_SOURCES = genderslua.c
 
-pure_install:
-	install -D --target-directory=$(DESTIR)$(luaexecdir) genders.so 
+genders_la_CFLAGS =  @LUA_INCLUDE@ -I../../libgenders/
 
-pure-install-local:
-	install -D --target-directory=$(DESTDIR)$(luaexecdir) genders.so 
-clean:
-	rm -rf *.so
+genders_la_LDFLAGS = -module -avoid-version
+
+genders_la_LIBADD = ../../libgenders/libgenders.la $(OTHER_FLAGS) @LUA_LIB@
+
+
 endif
 
 EXTRA_DIST = genderslua.c
