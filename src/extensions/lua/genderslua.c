@@ -203,7 +203,6 @@ static int lgenders_getattr(lua_State *L) {
 	}
 	lua_newtable(L);
 	for(i = 0; i < size_attr; i++) {
-		printf("attr: %s <-> val %s\n",attr_list[i],val_list[i]);
 		lua_pushstring(L, attr_list[i]);
 		lua_pushstring(L, val_list[i]);
 		lua_settable(L, -3);
