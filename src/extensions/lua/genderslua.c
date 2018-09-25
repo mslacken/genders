@@ -159,7 +159,7 @@ static int lgenders_query(lua_State *L) {
 	if(nr_args == 2)
 		query = luaL_checkstring(L,2); 
 	else
-		luaL_error(L,"query myst be called with one argument");
+		luaL_error(L,"query must be called with one argument");
 	nr_nodes = genders_query(dbh->handle,nodelist,size,query);
 	lua_newtable(L);
 	for(i = 0; i < nr_nodes; i++) {
@@ -183,7 +183,7 @@ static int lgenders_getattr(lua_State *L) {
 	if(nr_args == 2)
 		node = luaL_checkstring(L,2); 
 	else
-		luaL_error(L,"query myst be called with one argument");
+		luaL_error(L,"query must be called with one argument");
 	/* create space for the lists */
 	ret_code = genders_attrlist_create(dbh->handle,&attr_list);
 	if(ret_code == -1) {
@@ -219,6 +219,64 @@ static int lgenders_getattr(lua_State *L) {
 	return 1;
 }
 
+static int lgenders_isnode(lua_State *L) {
+	const char *node, *g_error;
+	int ret_code, nr_args;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	nr_args = lua_gettop(L);
+	if(nr_args == 2)
+		node = luaL_checkstring(L,2); 
+	else
+		luaL_error(L,"is_node must be called with one argument");
+	ret_code = genders_isnode(dbh->handle,node);
+	if(ret_code == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	lua_pushboolean(L,ret_code);
+	return 1;
+}
+
+static int lgenders_isattr(lua_State *L) {
+	const char *attr, *g_error;
+	int ret_code, nr_args;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	nr_args = lua_gettop(L);
+	if(nr_args == 2)
+		attr = luaL_checkstring(L,2); 
+	else
+		luaL_error(L,"is_attr must be called with one argument");
+	ret_code = genders_isattr(dbh->handle,attr);
+	if(ret_code == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	lua_pushboolean(L,ret_code);
+	return 1;
+}
+
+static int lgenders_isattrval(lua_State *L) {
+	const char *attr, *val, *g_error;
+	int ret_code, nr_args;
+	lgenders_userdata_t *dbh;
+	dbh = (lgenders_userdata_t *)luaL_checkudata(L, 1, "LGenders");
+	nr_args = lua_gettop(L);
+	if(nr_args == 3) {
+		attr = luaL_checkstring(L,2); 
+		val = luaL_checkstring(L,3); 
+	}
+	else
+		luaL_error(L,"is_attrval must be called with two arguments");
+	ret_code = genders_isattrval(dbh->handle,attr,val);
+	if(ret_code == -1) {
+		g_error = strdup(genders_errormsg(dbh->handle));
+		luaL_error(L,g_error);
+	}
+	lua_pushboolean(L,ret_code);
+	return 1;
+}
 
 static const struct luaL_Reg genders_methods[] = {
 	{"getnumattrs",lgenders_getnumattrs},
@@ -226,6 +284,9 @@ static const struct luaL_Reg genders_methods[] = {
 	{"getnodes",lgenders_getnodes},
 	{"getattr",lgenders_getattr},
 	{"query",lgenders_query},
+	{"isnode",lgenders_isnode},
+	{"isattr",lgenders_isattr},
+	{"isattrval",lgenders_isattrval},
 	{"reload",lgenders_reload},
 	{"__gc",lgenders_destroy},
 	{NULL,NULL},
