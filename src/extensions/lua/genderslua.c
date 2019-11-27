@@ -18,15 +18,7 @@
  *  You should have received a copy of the GNU General Public License along
  *  with Genders.  If not, see <http://www.gnu.org/licenses/>.
 \*****************************************************************************/
-#if HAVE_CONFIG_H
-#include "config.h"
-#endif /* HAVE_CONFIG_H */
-#include <stdlib.h>
-#include <string.h>
-#include <lua.h>
-#include <lauxlib.h>
-#include <lualib.h>
-#include <genders.h>
+#include "genderslua.h"
 
 typedef struct {
 	/* genders_t itself is a pointer */
