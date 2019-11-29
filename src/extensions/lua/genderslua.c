@@ -18,7 +18,26 @@
  *  You should have received a copy of the GNU General Public License along
  *  with Genders.  If not, see <http://www.gnu.org/licenses/>.
 \*****************************************************************************/
-#include "genderslua.h"
+#if HAVE_CONFIG_H
+#include "config.h"
+#endif /* HAVE_CONFIG_H */
+#include <stdlib.h>
+#include <string.h>
+#include <lua.h>
+#include <lauxlib.h>
+#include <lualib.h>
+#include <genders.h>
+
+#if LUA_VERSION_NUM <= 501
+
+#define luaL_setmetatable(L,t)          \
+        luaL_getmetatable(L,t);         \
+        lua_setmetatable(L,-2)
+
+#define luaL_setfuncs(L,r,n)            \
+        luaL_register(L,NULL,r)
+
+#endif
 
 typedef struct {
 	/* genders_t itself is a pointer */
@@ -281,34 +300,52 @@ static const struct luaL_Reg genders_methods[] = {
 	{"isattrval",lgenders_isattrval},
 	{"reload",lgenders_reload},
 	{"__gc",lgenders_destroy},
+	{ "new", lgenders_new },
 	{NULL,NULL},
 };
 
+/*
 static const struct luaL_Reg genders_functions[] = {
-	{ "new", lgenders_new },
 	{ NULL,  NULL}
 };
-
+*/
 
 int luaopen_genders(lua_State *L) {
 	/* Create the metatable and put it on the stack. */
+  /*
 	luaL_newmetatable(L, "LGenders");
+  */
 	/* Duplicate the metatable on the stack (We know have 2). */
+  /*
 	lua_pushvalue(L, -1);
+  */
 	/* Pop the first metatable off the stack and assign it to __index
 	* of the second one. We set the metatable for the table to itself.
 	* This is equivalent to the following in lua:
 	* metatable = {}
 	* metatable.__index = metatable
 	*/
+  /*
 	lua_setfield(L, -2, "__index");
-
+  */
 	/* Set the methods to the metatable that should be accessed via object:func */
-	luaL_setfuncs(L, genders_methods, 0);
-
+	/*
+  luaL_setfuncs(L, genders_methods, 0);
+  */
 	/* Register the object.func functions into the table that is at the top of the
 	* stack. */
+  /*
 	luaL_newlib(L, genders_functions);
+  */
 
+
+	luaL_newmetatable(L,"LGenders");
+	luaL_setfuncs(L,genders_methods,0);
+  lua_pushliteral(L,"version");                  /** version */
+  lua_pushliteral(L,LUA_VERSION);
+  lua_settable(L,-3);
+  lua_pushliteral(L,"__index");
+  lua_pushvalue(L,-2);
+  lua_settable(L,-3);
 	return 1;
 }
